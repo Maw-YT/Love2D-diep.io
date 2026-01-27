@@ -13,8 +13,8 @@ function Button:new(text, x, y, width, height, callback)
     self.isHovered = false
     
     -- Colors
-    self.color = {0.25, 0.25, 0.25} -- Dark grey
-    self.hoverColor = {0.35, 0.35, 0.35} -- Lighter grey
+    self.color = {0, 0.45, 0.8}
+    self.hoverColor = {0, 0.55, 0.95}
     self.textColor = {1, 1, 1}
     
     return self
@@ -34,12 +34,12 @@ function Button:draw()
     love.graphics.setColor(drawColor[1], drawColor[2], drawColor[3])
     
     -- Draw button body (rounded rectangle)
-    love.graphics.rectangle("fill", self.x, self.y, self.width, self.height, 5)
+    love.graphics.rectangle("fill", self.x, self.y, self.width, self.height, 2)
     
     -- Draw outline
     love.graphics.setLineWidth(2)
-    love.graphics.setColor(1, 1, 1, 0.5)
-    love.graphics.rectangle("line", self.x, self.y, self.width, self.height, 5)
+    love.graphics.setColor(0.3, 0.3, 0.3, 1)
+    love.graphics.rectangle("line", self.x, self.y, self.width, self.height, 2)
     
     -- Draw text centered
     love.graphics.setColor(self.textColor)

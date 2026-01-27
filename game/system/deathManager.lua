@@ -30,7 +30,7 @@ function DeathManager.update(game, dt)
         
         -- Optional: Let objects keep drifting/moving while they fade out
         if obj.update then
-            obj:update(dt, game.arena)
+            obj:update(dt, game.arena, game.camera)
         end
 
         if obj.deathAnim.done then

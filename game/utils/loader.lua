@@ -18,7 +18,7 @@ function loader.loadAll()
     resources.Button    = require "game.ui.button"
     resources.HealthBar = require "game.components.healthBar"
     resources.XPBar     = require "game.ui.xpBar"
-    resources.Collisions = require "game.system.collisions"
+    resources.Physics = require "game.system.physics"
     resources.CollisionManager = require "game.system.collisionManager"
     resources.DeathManager = require "game.system.deathManager"
     resources.UIManager = require "game.system.uiManager"

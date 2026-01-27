@@ -6,8 +6,8 @@ function Animation:new(parent)
     local self = setmetatable({}, Animation)
     self.parent = parent
     self.timer = 0
-    self.duration = 0.5 -- Half a second for the animation
-    self.maxScale = 1.5 -- Grows to 150% size
+    self.duration = 0.25
+    self.maxScale = 1.5
     self.alpha = 1
     self.done = false
     return self

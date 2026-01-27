@@ -11,7 +11,27 @@ function Arena:new(w, h)
     self.padding = 1500
     self.shapes = {} -- Shapes now live here!
     self.res = loader.loadAll()
+
+    -- Added a constant for the maximum population
+    self.maxShapes = 2000
     return self
+end
+
+-- New function to maintain the shape population
+function Arena:update(dt)
+    -- Check if we are below the limit
+    if #self.shapes < self.maxShapes then
+        -- Calculate how many need to be spawned
+        local needed = self.maxShapes - #self.shapes
+        
+        -- You can spawn them all at once, or limit it per frame 
+        -- to prevent a performance spike (e.g., spawn 5 per frame)
+        local spawnCount = math.min(needed, 5) 
+        
+        for i = 1, spawnCount do
+            table.insert(self.shapes, self.res.Shape:newRandom(self))
+        end
+    end
 end
 
 function Arena:drawBackground()

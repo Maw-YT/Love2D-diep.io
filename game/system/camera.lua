@@ -6,25 +6,34 @@ function Camera:new()
     local self = setmetatable({}, Camera)
     self.x = 0
     self.y = 0
-    self.speed = 5 -- Higher = snappier, Lower = lazier
+    self.scale = 1 -- Current zoom level
+    self.speed = 5 
     return self
 end
 
-function Camera:follow(tx, ty, dt)
+function Camera:follow(tx, ty, dt, targetScale)
     local w, h = love.graphics.getWidth(), love.graphics.getHeight()
     
-    -- Target position (where the camera wants to be)
-    local targetX = tx - w/2
-    local targetY = ty - h/2
+    -- Smoothly interpolate the zoom scale
+    self.scale = self.scale + (targetScale - self.scale) * self.speed * dt
 
-    -- Linear Interpolation: Move part of the way to the target
-    -- Formula: current + (target - current) * speed * dt
+    -- Target position adjusted for current scale (centering the player)
+    local targetX = tx - (w / 2) / self.scale
+    local targetY = ty - (h / 2) / self.scale
+
     self.x = self.x + (targetX - self.x) * self.speed * dt
     self.y = self.y + (targetY - self.y) * self.speed * dt
 end
 
 function Camera:apply()
-    love.graphics.translate(-self.x, -self.y)
+    local w, h = love.graphics.getWidth(), love.graphics.getHeight()
+    
+    -- 1. Move to screen center
+    love.graphics.translate(w/2, h/2)
+    -- 2. Scale the world
+    love.graphics.scale(self.scale)
+    -- 3. Move back by camera coordinates
+    love.graphics.translate(-self.x - (w/2) / self.scale, -self.y - (h/2) / self.scale)
 end
 
 return Camera
