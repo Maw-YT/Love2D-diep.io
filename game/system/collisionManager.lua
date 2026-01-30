@@ -8,7 +8,7 @@ function CollisionManager.updateAll(game, dt, state)
         Collisions.checkDroneCollisions(game.player.bullets, dt)
     end
     -- 2. Resolve Shapes bumping into each other
-    Collisions.checkShapeCollisions(game.arena.shapes, dt)
+    Collisions.checkShapeCollisions(game.arena.shapes, game.camera, dt)
     -- 3. Resolve Bullets/Drones hitting Shapes
     if state == "PLAYING" then
         Collisions.checkBulletShapeCollisions(game.player.bullets, game.arena.shapes, game, dt)

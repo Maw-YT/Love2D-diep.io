@@ -1,6 +1,8 @@
 local Drone = {}
 Drone.__index = Drone
 
+local Physics = require "game.system.physics"
+
 function Drone:new(player, x, y, vx, vy)
     local self = setmetatable({}, Drone)
     self.player = player
@@ -16,16 +18,18 @@ function Drone:new(player, x, y, vx, vy)
     self.penetration = 1
     self.damage = 5
     self.drag_strength = 10
+    self.pushFactor = 3.5 -- Increased from default to make them "bouncier"
+    self.absorptionFactor = 1.4 -- Makes them react more to being hit
     return self
 end
 
 function Drone:update(dt, arena, cam)
-
     -- 1. Get Mouse/Target coordinates
     local targetX, targetY = self.player.x, self.player.y
     local mx, my = love.mouse.getPosition()
-    local wx = mx + (self.player.x - love.graphics.getWidth()/2) * cam.scale
-    local wy = my + (self.player.y - love.graphics.getHeight()/2) * cam.scale
+    local sw, sh = love.graphics.getWidth(), love.graphics.getHeight()
+    local wx = (mx - sw / 2) / cam.scale + cam.x + (sw / 2) / cam.scale
+    local wy = (my - sh / 2) / cam.scale + cam.y + (sh / 2) / cam.scale
 
     if love.mouse.isDown(1) and not love.keyboard.isDown("lctrl") then
         targetX, targetY = wx, wy
@@ -52,25 +56,21 @@ function Drone:update(dt, arena, cam)
     local targetVx = math.cos(angleToTarget) * self.speed * multiplier
     local targetVy = math.sin(angleToTarget) * self.speed * multiplier
 
-    self.vx = self.vx + (targetVx - self.vx) * self.turnSpeed * dt
-    self.vy = self.vy + (targetVy - self.vy) * self.turnSpeed * dt
-
-    -- Friction
-    local speed = math.sqrt(self.vx*self.vx + self.vy*self.vy)
-    if speed > 0.1 then
-        local drag_mag = self.drag_strength * speed * dt
-        self.vx = self.vx - (self.vx / speed) * drag_mag
-        self.vy = self.vy - (self.vy / speed) * drag_mag
-    else
-        self.vx, self.vy = 0, 0
+    -- CHANGE: Use a lower steering weight when velocity is already high (from a bounce)
+    -- This allows the drone to "drift" after a hit before regaining control.
+    local steeringPower = self.turnSpeed
+    local currentSpeedSq = self.vx*self.vx + self.vy*self.vy
+    if currentSpeedSq > (self.speed * 1.5)^2 then
+        steeringPower = self.turnSpeed * 0.3 -- Reduce control when moving too fast
     end
 
-    self.x = self.x + self.vx * dt
-    self.y = self.y + self.vy * dt
+    self.vx = self.vx + (targetVx - self.vx) * steeringPower * dt
+    self.vy = self.vy + (targetVy - self.vy) * steeringPower * dt
+
+    Physics.applyPhysics(self, dt)
 end
 
 function Drone:draw(alpha)
-
     -- Sync drone visibility with the player's invisibility state
     local a = (alpha or 1) * (self.player.invisAlpha or 1)
     local angle = math.atan2(self.vy, self.vx)

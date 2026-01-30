@@ -13,13 +13,13 @@ function Player:new(x, y)
     self.vy = 0
     self.radius = 25
     self.angle = 0
-    self.color = {0, 0.7, 1}
-    self.outline_color = {0, 0.6, 0.9}
+    self.color = {0, 0.7, 0.9}
+    self.outline_color = {0, 0.5, 0.7}
     self.res = loader.loadAll()
 
     -- Factors for the new collision system
     self.pushFactor = 2.0
-    self.absorptionFactor = 0.5 -- Players are "heavier" than small shapes
+    self.absorptionFactor = 1 -- Players are "heavier" than small shapes
 
     -- Diep.io friction balance: acceleration * 10 = max speed
     -- We'll use a standard value that Physics.applyPhysics will damp
@@ -69,8 +69,9 @@ function Player:new(x, y)
     return self
 end
 
-function Player:update(dt, arena)
+function Player:update(dt, arena, cam)
     self.radius = 25 + ((self.level - 1))
+    self.accel = (30 / (FRICTION * 30)) / dt
     
     -- LEVEL UP LOGIC
     if self.xp >= self.xpNextLevel then
@@ -80,6 +81,14 @@ function Player:update(dt, arena)
         self.statPoints = self.statPoints + 1
         self.xpBarReset = true 
     end
+
+    local dx, dy = 0, 0
+    -- KEYBOARD/MOUSE
+    if love.keyboard.isDown("w") then dy = dy - 1 end
+    if love.keyboard.isDown("s") then dy = dy + 1 end
+    if love.keyboard.isDown("a") then dx = dx - 1 end
+    if love.keyboard.isDown("d") then dx = dx + 1 end
+    
 
     -- TOGGLE INPUTS
     if love.keyboard.isDown("e") and not self.e_pressed then
@@ -92,6 +101,7 @@ function Player:update(dt, arena)
     end
     self.c_pressed = love.keyboard.isDown("c")
 
+    if not love.mouse.isDown(1) and self.justSpawned then self.justSpawned = false end
     -- ANGLE LOGIC
     if self.autoSpin then
         self.angle = self.angle + (2 * dt)
@@ -101,23 +111,8 @@ function Player:update(dt, arena)
         self.angle = math.atan2(my - h/2, mx - w/2)
     end
 
-    if not love.mouse.isDown(1) and self.justSpawned then self.justSpawned = false end
-
-    local dx, dy = 0, 0
-    local isFiring = false
-    -- KEYBOARD/MOUSE
-    if love.keyboard.isDown("w") then dy = dy - 1 end
-    if love.keyboard.isDown("s") then dy = dy + 1 end
-    if love.keyboard.isDown("a") then dx = dx - 1 end
-    if love.keyboard.isDown("d") then dx = dx + 1 end
-    
-    local mx, my = love.mouse.getPosition()
-    local w, h = love.graphics.getWidth(), love.graphics.getHeight()
-    self.angle = math.atan2(my - h/2, mx - w/2)
-    isFiring = self.autoFire or love.mouse.isDown(1)
-
-    -- Same for firing:
-    local isFiring = self.ai_firing or self.autoFire or love.mouse.isDown(1)
+    -- SHOOTING LOGIC
+    local isFiring = self.justSpawned == false and self.autoFire or love.mouse.isDown(1)
     if isFiring then
         self.fire_timer = self.fire_timer - dt
         if self.fire_timer <= 0 then
@@ -184,7 +179,7 @@ function Player:update(dt, arena)
         local oldestDrone = table.remove(self.drones, 1)
         oldestDrone.isdead = true -- Flag for removal from the game world
     end
-    self.healthBar:update(dt, self.health)
+    self.healthBar:update(dt, self.health, self.max_health)
 end
 
 function Player:draw(alpha, style)

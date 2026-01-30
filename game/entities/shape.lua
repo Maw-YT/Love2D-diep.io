@@ -8,6 +8,8 @@ local HealthBar = require "game.components.healthBar"
 local BASE_ORBIT = 0.005
 local BASE_ROTATION = 0.002 -- Derived from AI.PASSIVE_ROTATION reference
 
+local greenColor = {0.5, 1, 0.4}
+
 function Shape:newRandom(arena)
     local self = setmetatable({}, Shape)
 
@@ -55,7 +57,7 @@ function Shape:update(dt, arena)
 
     -- 2. Maintain velocity in the direction of the orbit (Object.ts maintainVelocity)
     -- maintainVelocity adds velocity: maxSpeed * 0.1
-    local driftForce = self.shapeVelocity * 0.1
+    local driftForce = (self.shapeVelocity / (FRICTION * 35)) * 0.1
     self.vx = self.vx + math.cos(self.orbitAngle) * driftForce
     self.vy = self.vy + math.sin(self.orbitAngle) * driftForce
 
@@ -70,7 +72,7 @@ function Shape:update(dt, arena)
     if self.hitTimer > 0 then
         self.hitTimer = self.hitTimer - dt
     end
-    self.healthBar:update(dt, self.health)
+    self.healthBar:update(dt, self.health, self.max_health)
 end
 
 function Shape:draw(alpha, style)
@@ -138,34 +140,34 @@ function Shape:setType(type)
     if type == "square" then
         if rand <= 2 then -- GREEN SQUARE
             self.sides, self.max_health, self.size = 4, 1000, 50
-            self.color = {0.3, 0.9, 0.3}
+            self.color = greenColor
             self.pushFactor, self.absorptionFactor = 3.0, 0.2
             self.shapeVelocity = 15 -- Rarities drift slower
         else
             self.sides, self.max_health, self.size = 4, 10, 50
-            self.color = {0.9, 0.9, 0.2}
+            self.color = {1, 0.9, 0.4}
             self.absorptionFactor = 1.5 
         end
     elseif type == "triangle" then
         if rand <= 2 then -- GREEN TRIANGLE
             self.sides, self.max_health, self.size = 3, 1500, 55
-            self.color = {0.3, 0.9, 0.3}
+            self.color = greenColor
             self.pushFactor, self.absorptionFactor = 4.0, 0.15
             self.shapeVelocity = 15
         else
             self.sides, self.max_health, self.size = 3, 30, 55
-            self.color = {0.9, 0.3, 0.3}
+            self.color = {1, 0.5, 0.5}
             self.shapeVelocity = 30 -- Triangles are faster
         end
     elseif type == "pentagon" then
         if rand <= 2 then -- GREEN PENTAGON
             self.sides, self.max_health, self.size = 5, 2250, 75
-            self.color = {0.3, 0.9, 0.3}
+            self.color = greenColor
             self.pushFactor, self.absorptionFactor = 5.0, 0.1
             self.shapeVelocity = 12
         else
             self.sides, self.max_health, self.size = 5, 100, 75
-            self.color = {0.5, 0.5, 0.9}
+            self.color = {0.5, 0.6, 1}
             self.pushFactor = 1.5
             self.shapeVelocity = 18
         end
@@ -176,7 +178,7 @@ function Shape:setType(type)
         self.shapeVelocity = 10
     elseif type == "alpha_pentagon" then
         self.sides, self.max_health, self.size = 5, 3000, 250
-        self.color = {0.4, 0.4, 0.9}
+        self.color = {0.5, 0.6, 1}
         self.pushFactor, self.absorptionFactor = 8.0, 0.05
         self.shapeVelocity = 5 -- Alpha pentagons barely move
     end

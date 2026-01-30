@@ -3,7 +3,7 @@ local Physics = {}
 
 -- Ported from Object.ts: The relationship where friction eventually 
 -- counters acceleration to create a "top speed".
-local FRICTION = 0.1 
+FRICTION = 0.05 
 
 -- 1. Internal Physics (Ported from Object.ts: applyPhysics)
 -- Call this for every entity in your update loop
@@ -61,18 +61,44 @@ end
 
 --- COLLISION HANDLERS ---
 
--- Shape vs Shape
-function Physics.checkShapeCollisions(shapes, dt)
-    for i = 1, #shapes do
-        for j = i + 1, #shapes do
-            local s1, s2 = shapes[i], shapes[j]
-            local dx, dy = s2.x - s1.x, s2.y - s1.y
-            local distSq = dx*dx + dy*dy
-            local min = s1:getRadius() + s2:getRadius()
+-- Shape vs Shape with culling (fixes all the lag)
+function Physics.checkShapeCollisions(shapes, camera, dt)
+    local screenW = love.graphics.getWidth()
+    local screenH = love.graphics.getHeight()
+    local padding = 150 -- Increased slightly to ensure off-screen shapes still push each other
+      
+    -- Calculate viewport bounds based on camera position and zoom
+    local minX = camera.x - padding
+    local maxX = camera.x + (screenW / camera.scale) + padding
+    local minY = camera.y - padding
+    local maxY = camera.y + (screenH / camera.scale) + padding
 
-            if distSq < min*min then
-                applyKnockback(s1, s2, dt)
-                applyKnockback(s2, s1, dt)
+    for i = 1, #shapes do
+        local s1 = shapes[i]
+        local r1 = s1:getRadius()
+        
+        -- Cull S1: Only process if s1 is within the viewport
+        if s1.x + r1 >= minX and s1.x - r1 <= maxX and  
+           s1.y + r1 >= minY and s1.y - r1 <= maxY then
+            
+            for j = i + 1, #shapes do
+                local s2 = shapes[j]
+                local r2 = s2:getRadius()
+
+                -- Cull S2: Only check s2 if it's also near the viewport
+                -- This prevents s1 from checking every single shape in the world
+                if s2.x + r2 >= minX and s2.x - r2 <= maxX and  
+                   s2.y + r2 >= minY and s2.y - r2 <= maxY then
+                    
+                    local dx, dy = s2.x - s1.x, s2.y - s1.y
+                    local distSq = dx*dx + dy*dy
+                    local min = r1 + r2
+
+                    if distSq < min*min then
+                        applyKnockback(s1, s2, dt)
+                        applyKnockback(s2, s1, dt)
+                    end
+                end
             end
         end
     end

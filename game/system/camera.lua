@@ -17,10 +17,12 @@ function Camera:follow(tx, ty, dt, targetScale)
     -- Smoothly interpolate the zoom scale
     self.scale = self.scale + (targetScale - self.scale) * self.speed * dt
 
-    -- Target position adjusted for current scale (centering the player)
+    -- Target position: The player's interpolated visual position
+    -- Note: tx and ty should be the PLAYER'S interpolated draw coordinates
     local targetX = tx - (w / 2) / self.scale
     local targetY = ty - (h / 2) / self.scale
 
+    -- Standard camera smoothing
     self.x = self.x + (targetX - self.x) * self.speed * dt
     self.y = self.y + (targetY - self.y) * self.speed * dt
 end

@@ -12,8 +12,9 @@ function HealthBar:new(maxHealth)
     return self
 end
 
-function HealthBar:update(dt, currentHealth)
+function HealthBar:update(dt, currentHealth, maxHealth)
     self.current = currentHealth
+    self.max = maxHealth
     -- Smoothly interpolate the display bar toward actual health
     if self.displayHealth > self.current then
         self.displayHealth = self.displayHealth - (self.displayHealth - self.current) * 10 * dt

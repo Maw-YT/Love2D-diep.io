@@ -13,7 +13,7 @@ function Arena:new(w, h)
     self.res = loader.loadAll()
 
     -- Added a constant for the maximum population
-    self.maxShapes = 2000
+    self.maxShapes = 4000
     return self
 end
 
@@ -70,11 +70,6 @@ function Arena:drawBackground()
         love.graphics.line(-self.padding, y, self.width + self.padding, y)
     end
 
-    -- Border outline
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.setLineWidth(3)
-    love.graphics.rectangle("line", 0, 0, self.width, self.height)
-
     love.graphics.setLineWidth(1)
 end
 
@@ -84,11 +79,43 @@ function Arena:spawnInitialShapes(count)
     end
 end
 
--- Update your draw method to handle the shapes locally
-function Arena:drawShapes(style)
-    for _, s in ipairs(self.shapes) do
-        s:draw(1, style)
-    end
+-- Shape Drawing with Culling
+function Arena:drawShapes(alpha, style, camera)  
+    -- Calculate viewport bounds with padding for shapes partially visible  
+    local screenW = love.graphics.getWidth()  
+    local screenH = love.graphics.getHeight()  
+    local padding = 100 -- Extra space for shapes near edges  
+      
+    local minX = camera.x - padding  
+    local maxX = camera.x + (screenW / camera.scale) + padding  
+    local minY = camera.y - padding  
+    local maxY = camera.y + (screenH / camera.scale) + padding  
+    for _, s in ipairs(self.shapes) do  
+        -- Only draw if shape is within viewport  
+        if s.x + s.size >= minX and s.x - s.size <= maxX and  
+           s.y + s.size >= minY and s.y - s.size <= maxY then  
+            s:draw(alpha, style)  
+        end  
+    end  
+end
+
+function Arena:updateShapes(dt, camera)  
+    -- Calculate viewport bounds with padding for shapes partially visible  
+    local screenW = love.graphics.getWidth()  
+    local screenH = love.graphics.getHeight()  
+    local padding = 100 -- Extra space for shapes near edges  
+      
+    local minX = camera.x - padding  
+    local maxX = camera.x + (screenW / camera.scale) + padding
+    local minY = camera.y - padding  
+    local maxY = camera.y + (screenH / camera.scale) + padding
+    for _, s in ipairs(self.shapes) do  
+        -- Only update if shape is within viewport  
+        if s.x + s.size >= minX and s.x - s.size <= maxX and  
+           s.y + s.size >= minY and s.y - s.size <= maxY then  
+            s:update(dt, self)  
+        end  
+    end  
 end
 
 return Arena

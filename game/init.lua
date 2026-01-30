@@ -23,7 +23,7 @@ function Game:load()
 
     self.dyingObjects = {}
     self.respawnTimer = 5
-    self.arena:spawnInitialShapes(2000)
+    self.arena:spawnInitialShapes(4000)
 end
 
 function Game:startGame()
@@ -31,16 +31,15 @@ function Game:startGame()
     Game:respawnPlayer()
     self.arena.shapes = {}
     self.dyingObjects = {}
-    self.arena:spawnInitialShapes(2000)
+    self.arena:spawnInitialShapes(4000)
     self.state = "PLAYING"
 end
 
 function Game:update(dt)
-    local function round(num) return math.floor(num * 10) / 10 end
     self.ui:update(dt, self.state)
 
     if self.state == "MENU" then
-        for _, s in ipairs(self.arena.shapes) do s:update(dt, self.arena) end
+        self.arena:updateShapes(dt, self.camera)
         self.CollisionManager.updateAll(self, dt, self.state)
         self.arena:update(dt)
         self.camera:follow(self.arena.width/2, self.arena.height/2, dt, 1.0)
@@ -48,13 +47,13 @@ function Game:update(dt)
         self.arena:update(dt)
         -- ONLY update game logic if not paused
         if self.player and not self.player.isDead then
-            self.player:update(dt, self.arena)
+            self.player:update(dt, self.arena, self.camera)
             -- CALCULATE ZOOM SCALE
             -- 25 is the starting radius. As player grows, scale decreases.
             local baseRadius = 25
             local targetScale = baseRadius / self.player.radius
             
-            -- Limit how far it can zoom out (e.g., minimum 0.5x zoom)
+            -- Limit how far it can zoom out (e.g., minimum 0.5x zoom)y
             targetScale = math.max(0.5, targetScale)
             self.camera:follow(self.player.x, self.player.y, dt, targetScale)
             self.player.lifeTime = self.player.lifeTime + dt
@@ -67,7 +66,7 @@ function Game:update(dt)
         if self.player then
             for _, b in ipairs(self.player.bullets) do b:update(dt, self.arena, self.camera) end
         end
-        for _, s in ipairs(self.arena.shapes) do s:update(dt, self.arena) end
+        self.arena:updateShapes(dt, self.camera)
 
         self.CollisionManager.updateAll(self, dt, self.state)
         self.DeathManager.update(self, dt)
@@ -102,35 +101,33 @@ function Game:respawnPlayer()
     self.respawnTimer = 5 
 end
 
-function Game:draw()
+function Game:draw()  
+    local dt = love.timer.getDelta()  
+    love.graphics.push()  
+    self.camera:apply()  
+      
+    self.arena:drawBackground()  
+    self.arena:drawShapes(1, self.style, self.camera)  
 
-    local dt = love.timer.getDelta()
-    -- 1. DRAW EVERYTHING
-    love.graphics.push()
-    self.camera:apply()
-    
-    self.arena:drawBackground()
-
-    self.arena:drawShapes(self.style)
-    
-    if self.state == "PLAYING" or self.state == "PAUSED" then
-        for _, b in ipairs(self.player.bullets) do b:draw(1, self.style) end
-        if not self.player.isDead then
-            self.player:draw(1, self.style)
-        end
-    end
-    -- Draw dying things while camera is active
-    for _, obj in ipairs(self.dyingObjects) do
-        -- The apply function handles the setColor(1,1,1,self.alpha)
-        if obj.type then
-            obj.deathAnim:apply(function(a) obj:draw(a, self.style) end)
-        else
-            obj.deathAnim:apply(function(a) obj:draw(a) end)
-        end
-    end
-    
-    love.graphics.pop()
-
-    -- 2. DRAW SCREEN SPACE (UI - stays fixed on your monitor)
-    self.ui:draw(self.state, self.player)
+    if self.state == "PLAYING" or self.state == "PAUSED" then  
+        for _, b in ipairs(self.player.bullets) do   
+            b:draw(1, self.style)   
+        end  
+        if not self.player.isDead then  
+            self.player:draw(1, self.style)  
+        end  
+    end  
+      
+    for _, obj in ipairs(self.dyingObjects) do  
+        if obj.type then  
+            obj.deathAnim:apply(function(a) obj:draw(a, self.style) end)  
+        else  
+            obj.deathAnim:apply(function(a) obj:draw(a) end)  
+        end  
+    end  
+      
+    love.graphics.pop()  
+    love.graphics.setColor(1,1,1)
+    love.graphics.printf("FPS: ".. love.timer.getFPS(),0,0,100,"center")
+    self.ui:draw(self.state, self.player)  
 end
