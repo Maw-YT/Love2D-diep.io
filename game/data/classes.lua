@@ -74,7 +74,7 @@ local Classes = {
         upgrades = {11}
     },
     Gunner = {
-        id = 12, name = "Gunner", level = 30, fire_rate = 0.15,
+        id = 12, name = "Gunner", level = 30, fire_rate = 0.55,
         barrels = {
             {xOffset = -10, yOffsetMult = 0.2, delay = 0, type = "bullet", widthMult = 0.5, bulletSize = 0.6},
             {xOffset = 10, yOffsetMult = 0.2, delay = 0.5, type = "bullet", widthMult = 0.5, bulletSize = 0.6},

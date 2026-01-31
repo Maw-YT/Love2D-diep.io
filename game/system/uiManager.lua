@@ -3,6 +3,11 @@ local UIManager = {}
 UIManager.__index = UIManager
 
 local Classes = require "game.data.classes"
+local Minimap = require "game.ui.minimap"
+local StatMenu = require "game.ui.stat_menu"
+local UpgradeMenu = require "game.ui.upgrade_menu"
+local MainMenu = require "game.ui.main_menu"
+local OptionsMenu = require "game.ui.options_menu"
 
 function UIManager:new(game)
     local self = setmetatable({}, UIManager)
@@ -14,21 +19,10 @@ function UIManager:new(game)
     -- Start offset at -300 so it begins off-screen to the left
     self.statMenuOffset = -300
     
+    -- Initialize menu button instances
     self.menus = {
-        MENU = {
-            playButton = game.res.Button:new("PLAY", 0, 0, 200, 50, function() 
-                game:startGame() 
-            end),
-            -- New Options Button
-            optionsButton = game.res.Button:new("OPTIONS", 0, 0, 200, 50, function()
-                game.state = "OPTIONS"
-            end)
-        },
-        OPTIONS = {
-            backButton = game.res.Button:new("BACK", 0, 0, 200, 50, function()
-                game.state = "MENU"
-            end)
-        }
+        MENU = MainMenu.get(game),
+        OPTIONS = OptionsMenu.get(game)
     }
     -- Define the upgrade options
     self.statOptions = {
@@ -36,8 +30,10 @@ function UIManager:new(game)
         { id = "reload",             name = "Reload Speed",      color = {1, 0.5, 0} },
         { id = "bullet_damage",      name = "Bullet Damage",     color = {1, 0, 0} },
         { id = "bullet_speed",       name = "Bullet Speed",      color = {0, 0.5, 1}},
-        { id = "bullet_penetration", name = "Penetration",       color = {1, 1, 0} },
-        { id = "max_health",         name = "Max Health",        color = {0, 1, 1} }
+        { id = "bullet_penetration", name = "Bullet Penetration",color = {1, 1, 0} },
+        { id = "max_health",         name = "Max Health",        color = {0, 1, 1} },
+        { id = "body_damage",        name = "Body Damage",       color = {1, 0.3, 0.3} },
+        { id = "health_regen",       name = "Health Regen",      color = {1, 0.4, 0.8} }
     }
     return self
 end
@@ -77,11 +73,14 @@ function UIManager:update(dt, state)
     -- 3. Check Stat Upgrade Buttons (if visible)
     if state == "PLAYING" and self.statMenuOffset > -250 then
         local startX, startY = self.statMenuOffset, love.graphics.getHeight() - 250
-        local buttonSize = 25
+        local barWidth = 180
+        local buttonWidth = 35
         for i = 1, #self.statOptions do
             local rectY = startY + (i - 1) * (25 + 5)
-            if mx >= startX and mx <= startX + buttonSize and 
-               my >= rectY and my <= rectY + buttonSize then
+            local btnX = startX + barWidth -- Check the right side
+            
+            if mx >= btnX and mx <= btnX + buttonWidth and 
+            my >= rectY and my <= rectY + 25 then
                 isHovering = true
             end
         end
@@ -146,118 +145,34 @@ function UIManager:update(dt, state)
 end
 
 function UIManager:draw(state, player)
-    local dt = love.timer.getDelta()
-    
+    -- 1. Handle Game State Overlays
     if state == "MENU" then
-        self:drawMenuOverlay()
+        MainMenu.drawOverlay()
         for _, btn in pairs(self.menus.MENU) do btn:draw() end
+        
     elseif state == "OPTIONS" then
-        self:drawOptionsMenu()
+        OptionsMenu.draw(self.game)
         for _, btn in pairs(self.menus.OPTIONS) do btn:draw() end
-    elseif state == "PLAYING" then
-        self:drawHUD(player, dt)
-        if player and player.isDead then
-            self:drawRespawnScreen()
-        end
+        
     elseif state == "PAUSED" then
-        -- Draw the HUD in the background so you can see your stats
-        self:drawHUD(player, dt)
+        -- Use the previously unused pause overlay
         self:drawPauseOverlay()
-    end
-end
-
--- Dedicated function for things like XP bars, score, and stat menus
-function UIManager:drawHUD(player, dt)
-    if not player or player.isDead then return end
-    
-    -- Draw the XP Bar
-    self.xpBar:draw(player, dt)
-
-    -- Draw if the menu is at all visible on screen
-    if self.statMenuOffset > -280 then
-        self:drawStatMenu(player)
-    end
-
-    -- Draw Tank Upgrades
-    self:drawTankUpgradeMenu(player)
-
-    -- NEW: Draw the Minimap
-    self:drawMinimap(player)
-end
-
-function UIManager:drawStatMenu(player)
-    -- Use the animated offset for 'x'
-    local x, y = self.statMenuOffset, love.graphics.getHeight() - 250
-    local width, height = 200, 25
-    local buttonSize = 25 
-
-    love.graphics.printf("Points: " .. player.statPoints, x, y - 25, width + buttonSize, "left")
-
-    for i, stat in ipairs(self.statOptions) do
-        local rectY = y + (i - 1) * (height + 5)
         
-        -- Draw Button
-        love.graphics.setColor(stat.color)
-        love.graphics.rectangle("fill", x, rectY, buttonSize, buttonSize, 4)
+    elseif state == "PLAYING" and player then
+        -- Main Gameplay UI
+        self.xpBar:draw(player, love.timer.getDelta())
         
-        -- Draw Cross
-        love.graphics.setColor(0, 0, 0, 0.5)
-        local p = 6
-        love.graphics.rectangle("fill", x + p, rectY + (buttonSize/2 - 1), buttonSize - (p*2), 2)
-        love.graphics.rectangle("fill", x + (buttonSize/2 - 1), rectY + p, 2, buttonSize - (p*2))
-
-        -- Draw Progress Bar
-        local barX = x + buttonSize + 5
-        love.graphics.setColor(0.2, 0.2, 0.2, 0.8)
-        love.graphics.rectangle("fill", barX, rectY, width, height, 4)
-
-        local level = player.stats[stat.id] or 0
-        if level > 0 then
-            love.graphics.setColor(stat.color)
-            love.graphics.rectangle("fill", barX, rectY, (width / 8) * level, height, 4)
-        end
-
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.printf(stat.name .. " ["..level.."]", barX + 5, rectY + 6, width, "left")
-    end
-end
-
-function UIManager:drawMenuOverlay()
-    local w, h = love.graphics.getDimensions()
-    love.graphics.setColor(0, 0, 0, 0.5)
-    love.graphics.rectangle("fill", 0, 0, w, h)
-    
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("DIEP.IO (Love2D Edition)", 0, h/2 - 80, w, "center")
-    love.graphics.printf("Created by Maw (not owner of diep.io)", 0, h/2 + 200, w, "center")
-end
-
-function UIManager:drawOptionsMenu()
-    local w, h = love.graphics.getDimensions()
-    love.graphics.setColor(0, 0, 0, 0.8)
-    love.graphics.rectangle("fill", 0, 0, w, h)
-    
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("SETTINGS", 0, 100, w, "center")
-    
-    -- Style Selector Label
-    love.graphics.printf("Style:", w/2 - 150, 205, 100, "left")
-    
-    -- Style Buttons (The "Dropdown" replacement)
-    local styles = {"New", "Old"}
-    for i, s in ipairs(styles) do
-        local bx, by = w/2 - 50 + (i-1) * 110, 200
-        
-        -- Highlight current selection
-        if self.game.style == s then
-            love.graphics.setColor(0, 0.7, 1)
-        else
-            love.graphics.setColor(0.3, 0.3, 0.3)
+        if self.statMenuOffset > -280 then 
+            StatMenu.draw(self, player) 
         end
         
-        love.graphics.rectangle("fill", bx, by, 100, 30, 4)
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.printf(s, bx, by + 7, 100, "center")
+        UpgradeMenu.draw(player)
+        Minimap.draw(self.game, player)
+
+        -- 2. Use the previously unused respawn screen
+        if player.isDead then 
+            self:drawRespawnScreen() 
+        end
     end
 end
 
@@ -283,16 +198,19 @@ function UIManager:mousepressed(x, y, button)
     end
 
     local player = self.game.player
-    -- Allow clicking as long as the menu is mostly on screen
     if self.game.state == "PLAYING" and player and self.statMenuOffset > 0 then
         local startX, startY = self.statMenuOffset, love.graphics.getHeight() - 250
-        local buttonSize = 25
+        local barWidth = 200      -- Must match the width in stat_menu.lua
+        local buttonWidth = 35    -- Must match the width in stat_menu.lua
         local height = 25
 
         for i, stat in ipairs(self.statOptions) do
             local rectY = startY + (i - 1) * (height + 5)
             
-            if x >= startX and x <= startX + buttonSize and y >= rectY and y <= rectY + buttonSize then
+            -- FIX: Look for the click on the RIGHT side of the bar
+            local btnX = startX + barWidth 
+            
+            if x >= btnX and x <= btnX + buttonWidth and y >= rectY and y <= rectY + height then
                 if (player.stats[stat.id] or 0) < 8 and player.statPoints > 0 then 
                     player.stats[stat.id] = (player.stats[stat.id] or 0) + 1
                     player.statPoints = player.statPoints - 1
@@ -365,9 +283,7 @@ function UIManager:upgradeTank(player, class)
 end
 
 function UIManager:applyStatBoost(player, statId)
-    if statId == "movement_speed" then
-        player.accel = player.accel + 200
-    elseif statId == "max_health" then
+    if statId == "max_health" then
         player.max_health = player.max_health + 20
         player.health = player.health + 20
     elseif statId == "reload" then
@@ -387,7 +303,7 @@ function UIManager:drawPauseOverlay()
     love.graphics.printf("Press ESC to Resume", 0, h/2 + 20, w, "center")
 end
 
--- NEW: Function to render the death screen text
+-- Function to render the death screen text
 function UIManager:drawRespawnScreen()
     local w, h = love.graphics.getDimensions()
     
@@ -401,92 +317,6 @@ function UIManager:drawRespawnScreen()
     -- Show the countdown rounded to 1 decimal place
     local timeRemaining = math.max(0, self.game.respawnTimer)
     love.graphics.printf(string.format("Respawning in %.1f seconds...", timeRemaining), 0, h/2, w, "center")
-end
-
-function UIManager:drawMinimap(player)
-    local arena = self.game.arena
-    if not arena then return end
-
-    local mapSize = 150 -- Size of the minimap square
-    local padding = 20
-    local screenW, screenH = love.graphics.getDimensions()
-    
-    -- Position in bottom right
-    local mx = screenW - mapSize - padding
-    local my = screenH - mapSize - padding
-
-    -- 1. Draw Background
-    love.graphics.setColor(0, 0, 0, 0.4)
-    love.graphics.rectangle("fill", mx, my, mapSize, mapSize)
-    love.graphics.setColor(0, 0, 0, 0.8)
-    love.graphics.setLineWidth(2)
-    love.graphics.rectangle("line", mx, my, mapSize, mapSize)
-
-    -- Scale factor
-    local scaleX = mapSize / arena.width
-    local scaleY = mapSize / arena.height
-
-    -- 2. Draw Nest (Center Area)
-    local nestSize = arena.width * 0.15
-    love.graphics.setColor(0.5, 0.5, 0.9, 0.4)
-    love.graphics.rectangle("fill", 
-        mx + (arena.width / 2 - nestSize / 2) * scaleX,
-        my + (arena.height / 2 - nestSize / 2) * scaleY,
-        nestSize * scaleX,
-        nestSize * scaleY
-    )
-
-    -- 3. Draw Player Position
-    if player then
-        local px = mx + (player.x * scaleX)
-        local py = my + (player.y * scaleY)
-        
-        -- Clamp player dot within map bounds
-        px = math.max(mx, math.min(mx + mapSize, px))
-        py = math.max(my, math.min(my + mapSize, py))
-
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.circle("fill", px, py, 3)
-    end
-    
-    love.graphics.setLineWidth(1)
-end
-
-function UIManager:drawTankUpgradeMenu(player)
-    local x, y = 20, 20
-    local i = 0
-    
-    -- Find the current class data for the player
-    local currentClass = nil
-    for _, class in pairs(Classes) do
-        if class.name == player.tankName then
-            currentClass = class
-            break
-        end
-    end
-
-    if not currentClass or not currentClass.upgrades then return end
-
-    -- Only iterate through IDs allowed by the current class
-    for _, upgradeId in ipairs(currentClass.upgrades) do
-        -- Find the class data for this specific ID
-        local targetClass = nil
-        for _, class in pairs(Classes) do
-            if class.id == upgradeId then
-                targetClass = class
-                break
-            end
-        end
-
-        if targetClass and player.level >= targetClass.level then
-            love.graphics.setColor(0.2, 0.2, 0.2, 0.8)
-            love.graphics.rectangle("fill", x, y + (i * 55), 140, 50, 4)
-            
-            love.graphics.setColor(1, 1, 1)
-            love.graphics.printf(targetClass.name, x, y + (i * 55) + 18, 140, "center")
-            i = i + 1
-        end
-    end
 end
 
 return UIManager

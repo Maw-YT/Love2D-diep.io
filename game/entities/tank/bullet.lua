@@ -3,6 +3,8 @@
 local Bullet = {}
 Bullet.__index = Bullet
 
+local Physics = require "game.system.physics"
+
 function Bullet:new(player, x, y, vx, vy)
     local self = setmetatable({}, Bullet)
     self.player = player
@@ -11,11 +13,15 @@ function Bullet:new(player, x, y, vx, vy)
     self.radius = (player.radius * 0.7) / 2
     self.vx = vx
     self.vy = vy
+    self.mainVx = vx
+    self.mainVy = vy
     self.color = player.color
     self.outline_color = player.outline_color
     self.isdead = false
     self.damage = 5
     self.penetration = 1
+    self.lifetime = 5.0  -- 5 seconds  
+    self.age = 0  
 
     self.type = "bullet"
 
@@ -23,17 +29,20 @@ function Bullet:new(player, x, y, vx, vy)
 end
 
 function Bullet:update(dt)
-    self.x = self.x + self.vx * dt
-    self.y = self.y + self.vy * dt
+    -- Update position  
+    self.x = self.x + self.vx * dt  
+    self.y = self.y + self.vy * dt  
 
-    local speed = math.sqrt(self.vx*self.vx + self.vy*self.vy)
-    if speed > 10 then
-        local drag_mag = 1 * speed * dt
-        self.vx = self.vx - (self.vx / speed) * drag_mag
-        self.vy = self.vy - (self.vy / speed) * drag_mag
-    else
-        self.isdead = true
-    end
+    self.vx = self.vx + (self.mainVx * (FRICTION / 3))
+    self.vy = self.vy + (self.mainVy * (FRICTION / 3))
+
+    Physics.applyPhysics(self, dt)
+      
+    -- Update age and check lifetime  
+    self.age = self.age + dt  
+    if self.age >= self.lifetime then  
+        self.isdead = true  
+    end 
 end
 
 function Bullet:draw(alpha, style)

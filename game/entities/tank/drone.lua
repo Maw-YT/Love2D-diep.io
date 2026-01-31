@@ -13,6 +13,8 @@ function Drone:new(player, x, y, vx, vy)
     self.turnSpeed = 8
     self.radius = (player.radius * 0.7) / 2
     self.type = "drone"
+    self.lifetime = 10.0  -- 10 seconds (drones live longer)  
+    self.age = 0
     -- Check class data for specific drone types (e.g., "square" for Necromancer)
     self.droneType = player.tankData.droneType or "triangle"
     self.penetration = 1
@@ -67,7 +69,13 @@ function Drone:update(dt, arena, cam)
     self.vx = self.vx + (targetVx - self.vx) * steeringPower * dt
     self.vy = self.vy + (targetVy - self.vy) * steeringPower * dt
 
-    Physics.applyPhysics(self, dt)
+    Physics.applyPhysics(self, dt)  
+      
+    -- Add lifetime check  
+    self.age = self.age + dt  
+    if self.age >= self.lifetime then  
+        self.isdead = true  
+    end  
 end
 
 function Drone:draw(alpha)

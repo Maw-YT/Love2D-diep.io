@@ -17,7 +17,30 @@ function Button:new(text, x, y, width, height, callback)
     self.hoverColor = {0, 0.55, 0.95}
     self.textColor = {1, 1, 1}
     
+    -- Highlight/Shadow color (slightly darker than base)
+    self.shadowColor = {0, 0, 0, 0.2}   -- Transparent black for the bottom 1/3
     return self
+end
+
+local font = love.graphics.newFont("font.ttf", 14)
+
+local function drawOutlinedText(text, x, y, width, align, textColor, outlineColor)
+    love.graphics.setFont(font)
+    local outline = outlineColor or {0, 0, 0} -- Default to black
+    
+    love.graphics.setColor(outline)
+    -- Draw the text shifted in 8 directions to create the outline
+    for dx = -1, 1 do
+        for dy = -1, 1 do
+            if dx ~= 0 or dy ~= 0 then
+                love.graphics.printf(text, x + dx, y + dy, width, align)
+            end
+        end
+    end
+    
+    -- Draw the main text on top
+    love.graphics.setColor(textColor)
+    love.graphics.printf(text, x, y, width, align)
 end
 
 function Button:update(dt)
@@ -35,24 +58,27 @@ function Button:draw()
     
     -- Draw button body (rounded rectangle)
     love.graphics.rectangle("fill", self.x, self.y, self.width, self.height, 2)
+
+    -- Draw Shadow (Bottom 1/3)
+    love.graphics.setColor(self.shadowColor)
+    local shadowHeight = self.height / 3
+    love.graphics.rectangle("fill", self.x, self.y + self.height - shadowHeight, self.width, shadowHeight)
     
-    -- Draw outline
+    -- Draw outline around the button
     love.graphics.setLineWidth(2)
     love.graphics.setColor(0.3, 0.3, 0.3, 1)
     love.graphics.rectangle("line", self.x, self.y, self.width, self.height, 2)
     
-    -- Draw text centered
-    love.graphics.setColor(self.textColor)
+    -- Calculate text position for centering
     local font = love.graphics.getFont()
-    local textW = font:getWidth(self.text)
     local textH = font:getHeight()
+    local ty = self.y + (self.height / 2) - (textH / 2)
     
-    love.graphics.print(self.text, 
-        self.x + (self.width / 2) - (textW / 2), 
-        self.y + (self.height / 2) - (textH / 2)
-    )
+    -- Use the outlined text function
+    -- We use self.width and "center" to handle the horizontal centering automatically
+    drawOutlinedText(self.text, self.x, ty, self.width, "center", self.textColor, {0, 0, 0})
     
-    love.graphics.setColor(1, 1, 1, 1) -- Reset
+    love.graphics.setColor(1, 1, 1, 1) -- Reset color for next draw calls
 end
 
 function Button:mousepressed(x, y, button)

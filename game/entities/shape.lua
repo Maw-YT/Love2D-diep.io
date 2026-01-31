@@ -12,6 +12,7 @@ local greenColor = {0.5, 1, 0.4}
 
 function Shape:newRandom(arena)
     local self = setmetatable({}, Shape)
+    self.isCrasher = false
 
     -- 1. Determine spawn position
     self.x = love.math.random(100, arena.width - 100)
@@ -37,6 +38,7 @@ function Shape:newRandom(arena)
         if rand <= 60 then self:setType("pentagon")
         elseif rand <= 65 then self:setType("alpha_pentagon")
         elseif rand <= 66 then self:setType("hexagon")
+        elseif rand <= 85 then self:setType("crasher")
         else self:setType("pentagon") end
     else
         if rand <= 70 then self:setType("square")
@@ -51,18 +53,34 @@ function Shape:newRandom(arena)
 end
 
 function Shape:update(dt, arena)
-    -- IDLE DRIFT LOGIC (Ref: AbstractShape.ts)
-    -- 1. Update the orbit angle
-    self.orbitAngle = self.orbitAngle + self.orbitRate
+    if self.isCrasher and arena.player then  
+        -- Chase player instead of idle drift  
+        local dx = arena.player.x - self.x  
+        local dy = arena.player.y - self.y  
+        local dist = math.sqrt(dx*dx + dy*dy)  
+          
+        if dist > 0 then  
+            local chaseForce = (self.shapeVelocity / (FRICTION * 35)) * 0.5  
+            self.vx = self.vx + (dx/dist) * chaseForce  
+            self.vy = self.vy + (dy/dist) * chaseForce  
+        end  
+          
+        -- Rotate toward movement direction  
+        self.angle = math.atan2(self.vy, self.vx)  
+    else
+        -- IDLE DRIFT LOGIC (Ref: AbstractShape.ts)
+        -- 1. Update the orbit angle
+        self.orbitAngle = self.orbitAngle + self.orbitRate
 
-    -- 2. Maintain velocity in the direction of the orbit (Object.ts maintainVelocity)
-    -- maintainVelocity adds velocity: maxSpeed * 0.1
-    local driftForce = (self.shapeVelocity / (FRICTION * 35)) * 0.1
-    self.vx = self.vx + math.cos(self.orbitAngle) * driftForce
-    self.vy = self.vy + math.sin(self.orbitAngle) * driftForce
+        -- 2. Maintain velocity in the direction of the orbit (Object.ts maintainVelocity)
+        -- maintainVelocity adds velocity: maxSpeed * 0.1
+        local driftForce = (self.shapeVelocity / (FRICTION * 35)) * 0.1
+        self.vx = self.vx + math.cos(self.orbitAngle) * driftForce
+        self.vy = self.vy + math.sin(self.orbitAngle) * driftForce
 
-    -- Visual Rotation
-    self.angle = self.angle + self.passiveRotation
+        -- Visual Rotation
+        self.angle = self.angle + self.passiveRotation
+    end
 
     -- 3. Standard Physics (Friction and Arena Bounds)
     Physics.applyPhysics(self, dt)
@@ -181,6 +199,15 @@ function Shape:setType(type)
         self.color = {0.5, 0.6, 1}
         self.pushFactor, self.absorptionFactor = 8.0, 0.05
         self.shapeVelocity = 5 -- Alpha pentagons barely move
+    elseif type == "crasher" then  
+        self.sides = 3  -- Triangle shape  
+        self.max_health = 20  
+        self.size = 45  
+        self.color = {1, 0.4, 0.6}  -- Pink/red color  
+        self.pushFactor = 2.5  -- High push for ramming  
+        self.absorptionFactor = 0.8  -- Moderate resistance  
+        self.shapeVelocity = 80  -- Much faster than normal shapes  
+        self.isCrasher = true  -- Flag for special behavior
     end
     self.health = self.max_health
 end

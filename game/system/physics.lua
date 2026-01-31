@@ -159,19 +159,40 @@ function Physics.checkBulletShapeCollisions(bullets, shapes, game, dt)
 end
 
 -- 4. Player vs Shape
-function Physics.checkPlayerShapeCollisions(player, shapes, dt)
+function Physics.checkPlayerShapeCollisions(player, shapes, game, dt)
     for i = #shapes, 1, -1 do
         local s = shapes[i]
         local dx, dy = s.x - player.x, s.y - player.y
         local distSq = dx*dx + dy*dy
         local min = player.radius + s:getRadius()
-
+  
         if distSq < min*min then
             applyKnockback(player, s, dt)
             applyKnockback(s, player, dt)
-
+  
             if player.lifeTime > 3 then
-                player.health = player.health - 0.5
+                -- Calculate body damage: base 0.5 + 0.5 per level  
+                local bodyDamage = 0.5 + (player.stats.body_damage * 0.5)
+                  
+                -- Player takes reduced damage based on body_damage stat  
+                local playerDamage = 0.5 * (1 - (player.stats.body_damage * 0.1))
+                player.health = player.health - playerDamage
+                  
+                -- Shape takes increased damage based on body_damage stat  
+                s.health = s.health - bodyDamage
+
+                -- Handle shape death (same as bullet-shape collisions)  
+                if s.health <= 0 then  
+                    -- Award XP based on shape's max health  
+                    player.xp = player.xp + (s.max_health * 10)  
+                      
+                    -- Create death animation (requires game reference)  
+                    -- You'll need to pass 'game' as a parameter to this function  
+                    s.deathAnim = game.res.Animation:new(s)  
+                    table.insert(game.dyingObjects, s)  
+                    table.remove(shapes, i)  
+                end  
+                  
                 player.hitTimer, s.hitTimer = 0.2, 0.2
             end
         end

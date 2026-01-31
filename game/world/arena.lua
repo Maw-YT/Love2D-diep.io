@@ -4,11 +4,12 @@ Arena.__index = Arena
 
 local loader = require "game.utils.loader"
 
-function Arena:new(w, h)
+function Arena:new(w, h, player)
     local self = setmetatable({}, Arena)
     self.width = w
     self.height = h
     self.padding = 1500
+    self.player = player or nil
     self.shapes = {} -- Shapes now live here!
     self.res = loader.loadAll()
 

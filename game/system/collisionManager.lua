@@ -13,7 +13,7 @@ function CollisionManager.updateAll(game, dt, state)
     if state == "PLAYING" then
         Collisions.checkBulletShapeCollisions(game.player.bullets, game.arena.shapes, game, dt)
         -- 4. Resolve Player bumping into Shapes
-        Collisions.checkPlayerShapeCollisions(game.player, game.arena.shapes, dt)
+        Collisions.checkPlayerShapeCollisions(game.player, game.arena.shapes, game, dt)
     end
 end
 

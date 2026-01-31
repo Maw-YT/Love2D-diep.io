@@ -63,7 +63,9 @@ function Player:new(x, y)
         bullet_speed = 0,
         bullet_damage = 0,
         bullet_penetration = 0,
-        max_health = 0
+        max_health = 0,  
+        body_damage = 0,
+        health_regen = 0
     }
 
     return self
@@ -71,7 +73,7 @@ end
 
 function Player:update(dt, arena, cam)
     self.radius = 25 + ((self.level - 1))
-    self.accel = (30 / (FRICTION * 30)) / dt
+    self.accel = (25 + (2.5 * (self.stats.movement_speed + 1)) / (FRICTION * 30)) / dt
     
     -- LEVEL UP LOGIC
     if self.xp >= self.xpNextLevel then
@@ -103,12 +105,14 @@ function Player:update(dt, arena, cam)
 
     if not love.mouse.isDown(1) and self.justSpawned then self.justSpawned = false end
     -- ANGLE LOGIC
-    if self.autoSpin then
-        self.angle = self.angle + (2 * dt)
-    else
-        local mx, my = love.mouse.getPosition()
-        local w, h = love.graphics.getWidth(), love.graphics.getHeight()
-        self.angle = math.atan2(my - h/2, mx - w/2)
+    if self.autoSpin then  
+        self.angle = self.angle + (2 * dt)  
+    else  
+        local mx, my = love.mouse.getPosition()  
+        local sw, sh = love.graphics.getWidth(), love.graphics.getHeight()  
+        local wx = (mx - sw / 2) / cam.scale + cam.x + (sw / 2) / cam.scale  
+        local wy = (my - sh / 2) / cam.scale + cam.y + (sh / 2) / cam.scale  
+        self.angle = math.atan2(wy - self.y, wx - self.x)  
     end
 
     -- SHOOTING LOGIC
@@ -166,9 +170,10 @@ function Player:update(dt, arena, cam)
     Physics.applyPhysics(self, dt)
     Physics.keepInArena(self, arena.width, arena.height)
     
-    -- Passive Regen
-    if self.health > 0 and self.health < self.max_health then
-        self.health = math.min(self.max_health, self.health + (self.regen_speed * dt))
+    -- Passive Regen (base 2 + 1 per level)  
+    if self.health > 0 and self.health < self.max_health then  
+        local regenRate = self.regen_speed + self.stats.health_regen  
+        self.health = math.min(self.max_health, self.health + (regenRate * dt))  
     end
 
     if self.hitTimer > 0 then self.hitTimer = self.hitTimer - dt end

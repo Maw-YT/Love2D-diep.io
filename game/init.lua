@@ -92,7 +92,10 @@ function Game:respawnPlayer()
     local spawnX = love.math.random(margin, self.arena.width - margin)
     local spawnY = love.math.random(margin, self.arena.height - margin)
     -- Create a new player instance at the random location
+    self.player = nil
+    self.arena.player = nil
     self.player = self.res.Player:new(spawnX, spawnY)
+    self.arena.player = self.player
     self.player.active = false
     self.player.lifeTime = 0
     -- Optional: Clear bullets from the previous life
