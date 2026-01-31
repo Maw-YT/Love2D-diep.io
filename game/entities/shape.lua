@@ -203,7 +203,7 @@ function Shape:setType(type)
         self.sides = 3  -- Triangle shape  
         self.max_health = 20  
         self.size = 45  
-        self.color = {1, 0.4, 0.6}  -- Pink/red color  
+        self.color = {0.9, 0.5, 0.9}  -- Pink/red color  
         self.pushFactor = 2.5  -- High push for ramming  
         self.absorptionFactor = 0.8  -- Moderate resistance  
         self.shapeVelocity = 80  -- Much faster than normal shapes  

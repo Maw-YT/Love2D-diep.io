@@ -9,6 +9,28 @@ local UpgradeMenu = require "game.ui.upgrade_menu"
 local MainMenu = require "game.ui.main_menu"
 local OptionsMenu = require "game.ui.options_menu"
 
+-- Initialize font and outlined text helper
+local font = love.graphics.newFont("font.ttf", 14)
+
+local function drawOutlinedText(text, x, y, width, align, textColor, outlineColor)
+    love.graphics.setFont(font)
+    local outline = outlineColor or {0, 0, 0} -- Default to black
+    
+    love.graphics.setColor(outline)
+    -- Draw the text shifted in 8 directions to create the outline
+    for dx = -1, 1 do
+        for dy = -1, 1 do
+            if dx ~= 0 or dy ~= 0 then
+                love.graphics.printf(text, x + dx, y + dy, width, align)
+            end
+        end
+    end
+    
+    -- Draw the main text on top
+    love.graphics.setColor(textColor)
+    love.graphics.printf(text, x, y, width, align)
+end
+
 function UIManager:new(game)
     local self = setmetatable({}, UIManager)
     self.game = game
@@ -18,6 +40,7 @@ function UIManager:new(game)
 
     -- Start offset at -300 so it begins off-screen to the left
     self.statMenuOffset = -300
+    self.upgradeAnimationTimer = 0 -- Track animation progress
     
     -- Initialize menu button instances
     self.menus = {
@@ -73,16 +96,27 @@ function UIManager:update(dt, state)
     -- 3. Check Stat Upgrade Buttons (if visible)
     if state == "PLAYING" and self.statMenuOffset > -250 then
         local startX, startY = self.statMenuOffset, love.graphics.getHeight() - 250
-        local barWidth = 180
+        local barWidth = 200
         local buttonWidth = 35
         for i = 1, #self.statOptions do
             local rectY = startY + (i - 1) * (25 + 5)
-            local btnX = startX + barWidth -- Check the right side
+            local btnX = startX + barWidth - 20 -- Check the right side
             
             if mx >= btnX and mx <= btnX + buttonWidth and 
             my >= rectY and my <= rectY + 25 then
                 isHovering = true
             end
+        end
+    end
+    if self.game.player then
+        -- Update the animation timer
+        local upgrades = UpgradeMenu.getAvailableUpgrades(self.game.player)
+        if #upgrades > 0 then
+            -- Move toward 1 (fully visible)
+            self.upgradeAnimationTimer = math.min(1, self.upgradeAnimationTimer + dt * 5)
+        else
+            -- Reset to 0 when no upgrades are available
+            self.upgradeAnimationTimer = 0
         end
     end
 
@@ -114,9 +148,8 @@ function UIManager:update(dt, state)
                 end
 
                 if targetClass and player.level >= targetClass.level then
-                    local rectY = uy + (i * 55)
-                    -- Check if mouse is over this upgrade box (140x50 matching draw code)
-                    if mx >= ux and mx <= ux + 140 and my >= rectY and my <= rectY + 50 then
+                    local rectY = uy + (i * 110) -- Match the new spacing
+                    if mx >= ux and mx <= ux + 100 and my >= rectY and my <= rectY + 100 then
                         isHovering = true
                     end
                     i = i + 1
@@ -166,7 +199,8 @@ function UIManager:draw(state, player)
             StatMenu.draw(self, player) 
         end
         
-        UpgradeMenu.draw(player)
+        -- Pass the animation timer to the draw function
+        UpgradeMenu.draw(player, self.upgradeAnimationTimer)
         Minimap.draw(self.game, player)
 
         -- 2. Use the previously unused respawn screen
@@ -208,7 +242,7 @@ function UIManager:mousepressed(x, y, button)
             local rectY = startY + (i - 1) * (height + 5)
             
             -- FIX: Look for the click on the RIGHT side of the bar
-            local btnX = startX + barWidth 
+            local btnX = startX + barWidth - 20
             
             if x >= btnX and x <= btnX + buttonWidth and y >= rectY and y <= rectY + height then
                 if (player.stats[stat.id] or 0) < 8 and player.statPoints > 0 then 
@@ -245,8 +279,8 @@ function UIManager:mousepressed(x, y, button)
                 end
 
                 if targetClass and player.level >= targetClass.level then
-                    local rectY = uy + (i * 55)
-                    if x >= ux and x <= ux + 140 and y >= rectY and y <= rectY + 50 then
+                    local rectY = uy + (i * 110) -- Match the new spacing
+                    if x >= ux and x <= ux + 100 and y >= rectY and y <= rectY + 100 then
                         self:upgradeTank(player, targetClass)
                         break
                     end
@@ -298,9 +332,9 @@ function UIManager:drawPauseOverlay()
     love.graphics.setColor(0, 0, 0, 0.6)
     love.graphics.rectangle("fill", 0, 0, w, h)
     
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("GAME PAUSED", 0, h/2 - 20, w, "center")
-    love.graphics.printf("Press ESC to Resume", 0, h/2 + 20, w, "center")
+    -- Using outlined text for the pause menu
+    drawOutlinedText("GAME PAUSED", 0, h/2 - 20, w, "center", {1, 1, 1})
+    drawOutlinedText("Press ESC to Resume", 0, h/2 + 20, w, "center", {1, 1, 1})
 end
 
 -- Function to render the death screen text
@@ -311,12 +345,13 @@ function UIManager:drawRespawnScreen()
     love.graphics.setColor(0, 0, 0, 0.4)
     love.graphics.rectangle("fill", 0, 0, w, h)
     
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("YOU DIED", 0, h/2 - 40, w, "center")
+    -- Using outlined text for the death screen
+    drawOutlinedText("YOU DIED", 0, h/2 - 40, w, "center", {1, 0.2, 0.2}) -- Slightly red tint
     
     -- Show the countdown rounded to 1 decimal place
     local timeRemaining = math.max(0, self.game.respawnTimer)
-    love.graphics.printf(string.format("Respawning in %.1f seconds...", timeRemaining), 0, h/2, w, "center")
+    local respawnMsg = string.format("Respawning in %.1f seconds...", timeRemaining)
+    drawOutlinedText(respawnMsg, 0, h/2, w, "center", {1, 1, 1})
 end
 
 return UIManager
