@@ -48,6 +48,8 @@ You will need the **LÖVE** framework installed on your machine:
    love .
 
 ### 🎮 Controls
-
+* WASD: Move your tank.
+* Mouse: Aim.
+* Hold Left Click: Fire.
 ### 📜 License
 This project is licensed under the MIT License - see the LICENSE file for details.
