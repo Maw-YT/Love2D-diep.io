@@ -6,14 +6,14 @@ This project focuses on recreating *diep.io* as close as possible.
 
 ---
 
-## 🛠 Features (Current Progress: ~40%)
+## 🛠 Features (Current Progress: ~60%)
 - [x] Basic tank movement and rotation.
 - [x] Projectile physics and firing mechanics.
 - [x] Modular entity system (Players, Bullets, Shapes).
 - [x] Shape spawning and collision detection.
 - [x] Leveling and upgrade system.
 - [x] Tank classes/evolutions.
-- [ ] *diep.io* Gamemodes.
+- [x] *diep.io* Gamemodes.
 - [ ] Iconic *diep.io* Bosses.
 - [x] Custom Bots.
 
