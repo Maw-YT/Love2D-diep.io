@@ -36,6 +36,7 @@ This project focuses on recreating *diep.io* as close as possible.
 ### Prerequisites
 You will need the **LÖVE** framework installed on your machine:
 * [Download Love2D here](https://love2d.org/) (Available for Windows, macOS, and Linux).
+* Add the folder holding the love.exe file, as PATH in environment variables.
 
 1. Clone the repository:
    ```bash
