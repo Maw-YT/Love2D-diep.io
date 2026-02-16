@@ -51,6 +51,7 @@ You will need the **LÖVE** framework installed on your machine:
 * WASD: Move your tank.
 * Mouse: Aim.
 * Hold Left Click: Fire.
+* Tab: Open Class wheel.
 ### 📜 License
 This project is licensed under the MIT License - see the LICENSE file for details.
 
